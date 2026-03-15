@@ -27,6 +27,7 @@ electron.app.setPath('sessionData', sessionData)
 const configManager = require('./config.js')
 const permissions = require('./permissions.js')
 const userstyles = require('./userstyles.js')
+const { Dial } = require('./dial.mjs')
 
 //code
 /*
@@ -51,6 +52,7 @@ const userAgent = `VacuumTube/${package.version}` //for anything else
 const youtubeUrl = 'https://www.youtube.com/tv'
 const runningOnSteam = process.env.SteamOS === '1' && process.env.SteamGamepadUI === '1'
 
+/** @type {electron.BrowserWindow} */
 let win;
 let config;
 
@@ -106,6 +108,9 @@ async function main() {
 
     autoUpdater.checkForUpdatesAndNotify()
     permissions.setup({ appId })
+
+    const dial = new Dial(config.dial_friendly_name, config.dial_port, urlByDial);
+    dial.start();
 
     //general request modification
     electron.session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
@@ -415,6 +420,21 @@ function portable() {
         console.error('Failed to detect portable mode, assuming non-portable', err)
         return null;
     }
+}
+
+/**
+ * Handle new user connection to the DIAL server.
+ * @param {string} launchData pairing code etc to send to youtube tv
+ */
+function urlByDial(launchData) {
+    console.log('Received DIAL launch data: ' + launchData);
+    if (typeof launchData !== 'string') return;
+    if (launchData.length < 1) return;
+
+    win.loadURL(`${youtubeUrl}?${launchData}`, { userAgent: youtubeClientUserAgent })
+        .catch(err => {
+            console.error('Failed to load URL by DIAL', err);
+        })
 }
 
 main()

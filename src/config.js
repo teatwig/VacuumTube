@@ -11,6 +11,8 @@ let changed = false;
 let config = {}
 
 const defaults = {
+    dial_friendly_name: '',
+    dial_port: 1901,
     volume: 100, //video volume (0-100)
     adblock: true, //block ads
     sponsorblock: false, //enable sponsorblock
