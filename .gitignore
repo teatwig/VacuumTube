@@ -132,3 +132,4 @@ dist
 flatpak/generated-sources.json
 
 .direnv
+result*
