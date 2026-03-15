@@ -15,9 +15,11 @@ const sessionData = path.join(userData, 'sessionData')
 electron.app.setPath('sessionData', sessionData)
 
 const configManager = require('./config.js')
+const { Dial } = require('./dial.mjs')
 
 const argv = minimist(process.argv)
 
+const youtubeTvUrl = 'https://www.youtube.com/tv';
 //code
 /*
 about the user agent:
@@ -40,6 +42,7 @@ const userAgent = `VacuumTube/${package.version}` //for anything else
 
 const runningOnSteam = process.env.SteamOS === '1' && process.env.SteamGamepadUI === '1'
 
+/** @type {electron.BrowserWindow} */
 let win;
 let config;
 
@@ -94,6 +97,9 @@ async function main() {
     await electron.app.whenReady()
 
     autoUpdater.checkForUpdatesAndNotify()
+
+    const dial = new Dial(config.dial_friendly_name, config.dial_port, urlByDial);
+    dial.start();
 
     //general request modification
     electron.session.defaultSession.webRequest.onBeforeRequest((details, callback) => {
@@ -454,7 +460,7 @@ async function createWindow() {
     }
 
     console.log('loading youtube')
-    win.loadURL('https://www.youtube.com/tv', { userAgent: youtubeClientUserAgent })
+    win.loadURL(youtubeTvUrl, { userAgent: youtubeClientUserAgent })
 
     //remember fullscreen preference
     win.on('enter-full-screen', () => {
@@ -482,6 +488,21 @@ async function createWindow() {
     win.webContents.on('page-title-updated', () => {
         win.setTitle('VacuumTube')
     })
+}
+
+/**
+ * Handle new user connection to the DIAL server.
+ * @param {string} launchData pairing code etc to send to youtube tv
+ */
+function urlByDial(launchData) {
+    console.log('Received DIAL launch data: ' + launchData);
+    if (typeof launchData !== 'string') return;
+    if (launchData.length < 1) return;
+
+    win.loadURL(`${youtubeTvUrl}?${launchData}`, { userAgent: youtubeClientUserAgent })
+        .catch(err => {
+            console.error('Failed to load URL by DIAL', err);
+        })
 }
 
 main()
